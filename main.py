@@ -5,6 +5,7 @@ import uuid
 import random
 import time
 import base64
+import asyncio
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
@@ -192,7 +193,6 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await update.message.reply_text('جاري فتح صفحة التحقق...')
             
-            # Get verification methods
             guid = session_vars["qe_device_id"]
             device_id = session_vars["device_id"]
             url = f"https://i.instagram.com/api/v1{api_path}?guid={guid}&device_id={device_id}&challenge_context={challenge_context}"
@@ -247,10 +247,7 @@ async def handle_verify_code(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     code = update.message.text
     
-    # Implementation for verification code submission
     await update.message.reply_text('جاري التحقق من الرمز...')
-    
-    # Add verification logic here
     
     return ConversationHandler.END
 
@@ -288,8 +285,6 @@ async def handle_2fa_code(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text('جاري التحقق...')
     
-    # Add 2FA verification logic here
-    
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -299,7 +294,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-def main():
+async def main():
     TOKEN = "8458197969:AAHF0VtddPdgxVAGkQhAFYAgNSPwsIZV9sg"
     
     application = Application.builder().token(TOKEN).build()
@@ -320,7 +315,16 @@ def main():
     application.add_handler(conv_handler)
     
     print('البوت يعمل الان...')
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+    
+    try:
+        await asyncio.Event().wait()
+    except KeyboardInterrupt:
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
